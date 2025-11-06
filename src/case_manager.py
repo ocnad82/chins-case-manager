@@ -151,6 +151,7 @@ class CaseManagerApp(App):
                 pickle.dump(creds, token)
         return creds
 
+                   
     def upload_to_drive(self, file_path, file_name):
         if not self.creds:
             self.creds = self.setup_google_drive()
@@ -325,7 +326,7 @@ class CaseManagerApp(App):
         c.execute('INSERT INTO documents VALUES (NULL, ?, ?, ?, ?, ?, ?)', 
                   (self.current_case_id, doc_name, file_path, content, doc_date, category))
         c.execute('INSERT INTO events VALUES (NULL, ?, ?, ?, ?)', 
-                  (self.current_case_id, doc_date, f"Added document: {doc_name}", 'Document'))
+                  (self.current_case_id, docile_date, f"Added document: {doc_name}", 'Document'))
         self.conn.commit()
         self.upload_to_drive(file_path, doc_name)
         popup.dismiss()
@@ -623,7 +624,6 @@ class CaseManagerApp(App):
                 if '/url?q=' in href and 'google' not in href:
                     clean_url = href.split('/url?q=')[1].split('&')[0]
                     resources.append(clean_url)
-            # Compute joined resources outside f-string
             resources_text = '\n'.join(resources[:5])  # Limit to top 5 results
             self.legal_output.text += f"\nLegal Resources for {state}:\n{resources_text}"
         except Exception as e:
@@ -695,7 +695,9 @@ class CaseManagerApp(App):
         c.execute('SELECT transcription FROM audio_recordings WHERE case_id=?', (self.current_case_id,))
         audios = [row[0] for row in c.fetchall()]
         all_content = docs + texts + emails + audios
-        prompt = f"Analyze the following evidence for inconsistencies or lies:\n{'\n'.join(all_content)}\nProvide a report."
+        # Compute joined content outside f-string
+        content_text = '\n'.join(all_content)
+        prompt = f"Analyze the following evidence for inconsistencies or lies:\n{content_text}\nProvide a report."
         try:
             client = openai.OpenAI(api_key=self.api_key)
             response = client.chat.completions.create(
@@ -738,7 +740,9 @@ class CaseManagerApp(App):
         c.execute('SELECT description FROM pre_case_context WHERE case_id=?', (self.current_case_id,))
         context = [row[0] for row in c.fetchall()]
         all_content = docs + texts + emails + context
-        prompt = f"Draft a legal motion for a child welfare case in {self.state}: {motion_type}\nEvidence:\n{'\n'.join(all_content)}\nInclude relevant legal citations."
+        # Compute joined content outside f-string
+        content_text = '\n'.join(all_content)
+        prompt = f"Draft a legal motion for a child welfare case in {self.state}: {motion_type}\nEvidence:\n{content_text}\nInclude relevant legal citations."
         try:
             client = openai.OpenAI(api_key=self.api_key)
             response = client.chat.completions.create(
